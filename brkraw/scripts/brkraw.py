@@ -327,14 +327,13 @@ def main():
         json_fname = args.json
         slope, offset = set_rescale(args)
 
-        # check if the project is multi-session
+        # check if the project is session included
         if all(pd.isnull(df['SessID'])):
-            # SessID was removed, this need to go to documentation
-            multi_session = False
+            # SessID was removed (not column, but value), this need to go to documentation
+            include_session = False
         else:
-            #import pdb; pdb.set_trace()
-            # if SessionID appears in datasheet, then by default session appears. multi_session variable name need to be changed include_session?.
-            multi_session = True
+            # if SessionID appears in datasheet, then by default session appears.
+            include_session = True
 
         if not output:
             root_path = os.path.abspath(os.path.join(os.path.curdir, 'Data'))
@@ -375,7 +374,7 @@ def main():
                         with open(os.path.join(root_path, 'participants.tsv'), 'a+') as f:
                             f.write(subj_code + '\n')
 
-                        filtered_dset = completeFieldsCreateFolders(df, filtered_dset, dset, multi_session, root_path, subj_code)
+                        filtered_dset = completeFieldsCreateFolders(df, filtered_dset, dset, include_session, root_path, subj_code)
 
                         list_tested_fn = []
                         # Converting data according to the updated sheet
@@ -559,18 +558,18 @@ def generateModalityAgnosticFiles(root_path, json_fname):
 
 
 
-def createFolderTree(multi_session, row, root_path, subj_code):
-    """To create participant (and session if multi_session) folder.
+def createFolderTree(include_session, row, root_path, subj_code):
+    """To create participant (and session if include_session) folder.
     Args:
-        multi_session (bool): multi_session.
+        include_session (bool): include_session.
         row (obj): a (panadas) row of data containing SessID and DataType.
         root_path (str): the root path of output folder
         subj_code (str): subject or participant folder name
     Returns:
         list: first 0 element is dtype_path, second 1 is fname.
     """
-    if multi_session:
-        # If multi-session, make session dir
+    if include_session:
+        # If session included, make session dir
         sess_code = 'ses-{}'.format(row.SessID)
         subj_path = os.path.join(root_path, subj_code)
         mkdir(subj_path)
@@ -590,13 +589,13 @@ def createFolderTree(multi_session, row, root_path, subj_code):
     return [dtype_path, fname]
 
 
-def completeFieldsCreateFolders (df, filtered_dset, dset, multi_session, root_path, subj_code):
+def completeFieldsCreateFolders (df, filtered_dset, dset, include_session, root_path, subj_code):
     """To complete the dataframe fields and create output folders. [too many parameters]
     Args:
         df (dataframe): original pandas dataframe, not sure whether it can replaced by filtered_dset (someone has to figure it out)
         filtered_dset (dataframe): filtered pandas dataframe
         dset (object): BrukerLoader(dpath) object
-        multi_session (bool): multi_session.
+        include_session (bool): include_session.
         root_path (str): the root path of output folder
         subj_code (str): subject or participant folder name
     Returns:
@@ -607,7 +606,7 @@ def completeFieldsCreateFolders (df, filtered_dset, dset, multi_session, root_pa
 
     # iterrows to create folder tree, add to filtered_dset fname, dtype_path, and modality
     for i, row in filtered_dset.iterrows():
-        dtype_path, fname = createFolderTree(multi_session, row, root_path, subj_code)
+        dtype_path, fname = createFolderTree(include_session, row, root_path, subj_code)
         if pd.notnull(row.task):
             if bids_validation(df, i, 'task', row.task, 10):
                 fname = '{}_task-{}'.format(fname, row.task)
